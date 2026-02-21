@@ -363,12 +363,12 @@ def main():
 
     st.set_page_config(
         page_title=config["app_title"],
-        page_icon="💊",
+        page_icon="🏡",
         layout="wide",
     )
 
-    st.title("💊 " + config["app_title"])
-    st.caption("บันทึกจากหน้าเว็บ → เก็บใน Google Sheets (Hybrid)")
+    st.title("🏡 " + config["app_title"])
+    st.caption("บันทึกอุบัติการณ์ในสถานพยาบาลปฐมภูมิ")
 
     # Login gate
     if not login_required(config):
