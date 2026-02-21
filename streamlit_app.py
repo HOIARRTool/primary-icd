@@ -288,23 +288,22 @@ def render_history_tab():
         return
 
     df_filter = df.copy()
-    df_filter["_event_date"] = pd.to_datetime(df_filter["วันที่เกิดเหตุ"], errors="coerce").dt.date
-    
-    valid_dates = df_filter["_event_date"].dropna()
-    
-    if len(valid_dates) == 0:
+
+    # แปลงวันที่ในชีตให้เป็น pandas datetime (ทนต่อข้อมูลผิดรูปแบบ)
+    df_filter["_event_dt"] = pd.to_datetime(
+        df_filter["วันที่เกิดเหตุ"].astype(str).str.strip(),
+        errors="coerce"
+    )
+
+    # หา min/max วันที่สำหรับ default ของตัวกรอง (ต้องเป็น Python date)
+    valid_dt = df_filter["_event_dt"].dropna()
+
+    if len(valid_dt) == 0:
         min_d = date.today()
         max_d = date.today()
     else:
-        # ให้แน่ใจว่าเป็น Python date จริง ๆ
-        min_d = valid_dates.min()
-        max_d = valid_dates.max()
-    
-        # กันกรณี pandas ส่งค่าแปลก/NaT มา
-        if pd.isna(min_d):
-            min_d = date.today()
-        if pd.isna(max_d):
-            max_d = date.today()
+        min_d = valid_dt.min().date()
+        max_d = valid_dt.max().date()
 
     st.markdown("### ตัวกรอง")
     c1, c2, c3, c4 = st.columns([1, 1, 1, 2])
@@ -320,11 +319,16 @@ def render_history_tab():
 
     process_filter = st.multiselect("กระบวนการที่เกิด", PROCESS_OPTIONS, default=[])
 
+    # แปลง date จาก widget -> pandas Timestamp เพื่อเทียบกับ _event_dt
+    start_ts = pd.Timestamp(start_date)
+    end_ts = pd.Timestamp(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+
     filtered = df_filter.copy()
 
+    # กรองช่วงวันที่ (ให้แถวที่ parse วันที่ไม่ได้ยังแสดงได้ถ้าต้องการ)
     filtered = filtered[
-        (filtered["_event_date"].isna()) |
-        ((filtered["_event_date"] >= start_date) & (filtered["_event_date"] <= end_date))
+        (filtered["_event_dt"].isna()) |
+        ((filtered["_event_dt"] >= start_ts) & (filtered["_event_dt"] <= end_ts))
     ]
 
     if severity_filter:
@@ -340,7 +344,8 @@ def render_history_tab():
             | filtered["รายละเอียดเหตุการณ์"].astype(str).str.lower().str.contains(kw, na=False)
         ]
 
-    filtered = filtered.drop(columns=["_event_date"])
+    # ลบคอลัมน์ช่วยก่อนแสดง
+    filtered = filtered.drop(columns=["_event_dt"], errors="ignore")
 
     m1, m2, m3 = st.columns(3)
     m1.metric("จำนวนรายการทั้งหมด", f"{len(df):,}")
