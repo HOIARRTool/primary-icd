@@ -289,9 +289,22 @@ def render_history_tab():
 
     df_filter = df.copy()
     df_filter["_event_date"] = pd.to_datetime(df_filter["วันที่เกิดเหตุ"], errors="coerce").dt.date
-
-    min_d = df_filter["_event_date"].dropna().min() or date.today()
-    max_d = df_filter["_event_date"].dropna().max() or date.today()
+    
+    valid_dates = df_filter["_event_date"].dropna()
+    
+    if len(valid_dates) == 0:
+        min_d = date.today()
+        max_d = date.today()
+    else:
+        # ให้แน่ใจว่าเป็น Python date จริง ๆ
+        min_d = valid_dates.min()
+        max_d = valid_dates.max()
+    
+        # กันกรณี pandas ส่งค่าแปลก/NaT มา
+        if pd.isna(min_d):
+            min_d = date.today()
+        if pd.isna(max_d):
+            max_d = date.today()
 
     st.markdown("### ตัวกรอง")
     c1, c2, c3, c4 = st.columns([1, 1, 1, 2])
